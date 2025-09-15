@@ -1,0 +1,166 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Notification Tool Jr. V1</title>
+    <style>
+        label { margin-right: 10px; }
+        .row { margin-bottom: 10px; }
+        textarea { width: 100%; }
+    </style>
+</head>
+<body>
+    <h1>Notification Tool Jr. V1</h1>
+
+    <div class="row">
+        <label for="ticket_number">Pager Duty Number:</label>
+        <input type="number" id="ticket_number" name="ticket_number">
+        <button onclick="submitTicket()">Submit</button>
+    </div>
+
+    <div class="row">
+        <strong>Fetched Title:</strong>
+        <div id="fetched_title" style="margin-top:5px;"></div>
+    </div>
+
+    <div class="row">
+        <label>Title Prefixes:</label>
+        <input type="checkbox" id="retrospective" name="prefix" value="Retrospective"> Retrospective
+        <input type="checkbox" id="resolved" name="prefix" value="Resolved"> Resolved
+        <input type="checkbox" id="downgraded" name="prefix" value="Downgraded"> Downgraded
+    </div>
+
+    <div class="row">
+        <label for="update">Update:</label>
+        <select id="update">
+            <script>
+                for (let i = 1; i <= 99; i++) {
+                    document.write(`<option value="${i}">${i}</option>`);
+                }
+            </script>
+        </select>
+
+        <label>Time Zone:</label>
+        <input type="radio" id="eastern" name="timezone" value="Eastern" checked> Eastern
+        <input type="radio" id="utc" name="timezone" value="UTC"> UTC
+    </div>
+
+    <div class="row">
+        <button id="prefillBtn" onclick="prefillNotes()">Submit</button>
+        <button onclick="clearNotes()">Clear Notes</button>
+    </div>
+
+    <div class="row">
+        <label for="notes">NOTES:</label><br>
+        <textarea id="notes" rows="10" spellcheck="true" readonly></textarea>
+    </div>
+
+    <div class="row">
+        <button onclick="generateOutput()">Generate Output</button>
+        <button onclick="copyOutput()">Copy</button>
+    </div>
+
+    <div class="row">
+        <label for="output">Generated Output:</label><br>
+        <textarea id="output" rows="10"></textarea>
+    </div>
+
+    <script>
+        let title = "";
+        let notesLocked = true;
+
+        function submitTicket() {
+            const ticketNumber = document.getElementById("ticket_number").value;
+            fetch('/fetch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'ticket_number=' + encodeURIComponent(ticketNumber)
+            })
+            .then(response => response.json())
+            .then(data => {
+                title = data.title;
+                document.getElementById("fetched_title").innerText = title;
+            })
+            .catch(error => {
+                console.error("Error fetching ticket:", error);
+                document.getElementById("fetched_title").innerText = "Failed to fetch ticket.";
+            });
+        }
+
+        function prefillNotes() {
+            const update = document.getElementById("update").value;
+            const resolvedChecked = document.getElementById("resolved").checked;
+            let notes = "";
+
+            if (update === "1" && !resolvedChecked) {
+                notes = "- SRO US was alerted via :\n- SRO US is investigating the issue, with the support teams\n- More updates to follow Status Dashboard\n\nhttps://discoveryinc.pagerduty.com/status-dashboard";
+            } else if (update === "1" && resolvedChecked) {
+                notes = "- SRO US was alerted via :\n- SRO US is investigating the issue, with the support teams\n- This incident is resolved, no further communications will be sent out.\n\nhttps://discoveryinc.pagerduty.com/status-dashboard";
+            } else if (update !== "1" && !resolvedChecked) {
+                notes = "- \n- More updates to follow Status Dashboard\n\nhttps://discoveryinc.pagerduty.com/status-dashboard";
+            } else if (update !== "1" && resolvedChecked) {
+                notes = "- \n- This incident is resolved, no further communications will be sent out.\n\nhttps://discoveryinc.pagerduty.com/status-dashboard";
+            }
+
+            const notesBox = document.getElementById("notes");
+            notesBox.value = notes;
+            notesBox.readOnly = false;
+            notesLocked = false;
+            document.getElementById("prefillBtn").disabled = true;
+        }
+
+        function clearNotes() {
+            const notesBox = document.getElementById("notes");
+            notesBox.value = "";
+            notesBox.readOnly = true;
+            notesLocked = true;
+            document.getElementById("output").value = "";
+            document.getElementById("prefillBtn").disabled = false;
+        }
+
+        function generateOutput() {
+            const update = document.getElementById("update").value;
+            const timezone = document.querySelector('input[name="timezone"]:checked').value;
+            const prefixes = [];
+            if (document.getElementById("retrospective").checked) prefixes.push("Retrospective");
+            if (document.getElementById("resolved").checked) prefixes.push("Resolved");
+            if (document.getElementById("downgraded").checked) prefixes.push("Downgraded");
+
+            const now = new Date();
+            const options = { timeZone: timezone === "Eastern" ? "America/New_York" : "UTC", hour12: false };
+            const formatter = new Intl.DateTimeFormat('en-GB', {
+                ...options,
+                year: 'numeric', month: 'long', day: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+            });
+            const parts = formatter.formatToParts(now);
+            let day = "", month = "", year = "", hour = "", minute = "";
+            parts.forEach(p => {
+                if (p.type === "day") day = p.value;
+                if (p.type === "month") month = p.value;
+                if (p.type === "year") year = p.value;
+                if (p.type === "hour") hour = p.value;
+                if (p.type === "minute") minute = p.value;
+            });
+            const outDate = `${day}-${month}-${year} | ${hour}:${minute} (${timezone})`;
+
+            const notes = document.getElementById("notes").value;
+            const output = `${title}\n\n${prefixes.join(" ")} Update ${update} | ${outDate}\n\n${notes}`;
+            const outputBox = document.getElementById("output");
+            outputBox.value = output;
+
+            navigator.clipboard.writeText(output).then(() => {
+                alert("Output copied to clipboard!");
+            });
+        }
+
+        function copyOutput() {
+            const output = document.getElementById("output").value;
+            navigator.clipboard.writeText(output).then(() => {
+                alert("Copy successful!");
+            });
+        }
+    </script>
+</body>
+</html>

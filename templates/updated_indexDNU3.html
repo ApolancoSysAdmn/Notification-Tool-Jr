@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Notification Tool Jr. V1</title>
+    <style>
+        .box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            min-height: 100px;
+            margin-bottom: 20px;
+        }
+        .inline {
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .spacer {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Notification Tool Jr. V1</h1>
+
+    <!-- PagerDuty Number Input -->
+    <label for="ticket_number">PagerDuty Number:</label>
+    <input type="text" id="ticket_number" required>
+
+    <!-- Title Display -->
+    <div id="title_preview" style="margin: 10px 0; font-weight: bold;"></div>
+
+    <!-- Title Prefixes -->
+    <div class="spacer"></div>
+    <label>Title Prefixes:</label>
+    <div class="inline"><input type="checkbox" id="prefix_retrospective"> Retrospective</div>
+    <div class="inline"><input type="checkbox" id="prefix_resolved"> Resolved</div>
+    <div class="inline"><input type="checkbox" id="prefix_downgraded"> Downgraded</div>
+
+    <!-- Update and Time Zone -->
+    <div class="spacer"></div>
+    <div>
+        <label for="update_number">Update:</label>
+        <select id="update_number">
+            <script>
+                for (let i = 1; i <= 99; i++) {
+                    document.write(`<option value="${i}">${i}</option>`);
+                }
+            </script>
+        </select>
+
+        <label>Time Zone:</label>
+        <input type="radio" name="timezone" value="EST" checked> EST
+        <input type="radio" name="timezone" value="UTC"> UTC
+    </div>
+
+    <!-- Submit and Clear Notes Buttons -->
+    <div class="spacer"></div>
+    <div>
+        <button id="submit_notes" onclick="populateNotes()">Submit</button>
+        <button onclick="clearNotes()">Clear Notes</button>
+    </div>
+
+    <!-- Spacer and Notification Notes -->
+    <div class="spacer"></div>
+    <label>Notification Notes:</label>
+    <div id="notification_notes" class="box" contenteditable="true" spellcheck="true"></div>
+
+    <!-- Generated Output -->
+    <label>Generated Output:</label>
+    <div id="generated_output" class="box" contenteditable="true"></div>
+
+    <!-- Buttons -->
+    <button onclick="submitTicket()">Submit to PagerDuty</button>
+    <button onclick="generateOutput()">Generate Output</button>
+    <button onclick="copyOutput()">Copy</button>
+    <button onclick="sendToPagerDuty()">Send to PagerDuty</button>
+</body>
+</html>
